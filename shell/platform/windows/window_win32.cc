@@ -560,6 +560,10 @@ WindowWin32::HandleMessage(UINT const message,
       // If the key is a modifier, get its side.
       keyCode = ResolveKeyCode(keyCode, extended, scancode);
       const int action = is_keydown_message ? WM_KEYDOWN : WM_KEYUP;
+      /// 长按右shift键在windows官方API：WndProc上传过来的WM_KEYDOWN就不正确，所以如果是捕获到的右shift按压消息，就放弃处理。
+      if (keyCode == 161) {
+        return 0;
+      }
       const bool was_down = lparam & 0x40000000;
       if (OnKey(keyCode, scancode, action, 0, extended, was_down)) {
         return 0;
