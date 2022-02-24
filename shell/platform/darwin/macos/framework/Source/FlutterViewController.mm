@@ -98,7 +98,7 @@ struct MouseState {
 /**
  * Private interface declaration for FlutterViewController.
  */
-@interface FlutterViewController () <FlutterViewReshapeListener,FlutterChannelKeyResponderDelegate>
+@interface FlutterViewController () <FlutterViewReshapeListener, FlutterChannelKeyResponderDelegate>
 
 /**
  * The tracking area used to generate hover events, if enabled.
@@ -452,17 +452,11 @@ static void CommonInit(FlutterViewController* controller) {
                                                                    callback:callback
                                                                    userData:userData];
                                             }]];
-    FlutterChannelKeyResponder *keyResponder = [[FlutterChannelKeyResponder alloc]
-                                                initWithChannel:[FlutterBasicMessageChannel
-                                                                    messageChannelWithName:@"flutter/keyevent"
-                                                                           binaryMessenger:_engine.binaryMessenger
-                                                                                     codec:[FlutterJSONMessageCodec
-                                                                                            sharedInstance]]];
-  [_keyboardManager
-      addPrimaryResponder:keyResponder];
+  FlutterChannelKeyResponder *keyResponder = [[FlutterChannelKeyResponder alloc] initWithChannel:[FlutterBasicMessageChannel messageChannelWithName:@"flutter/keyevent" binaryMessenger:_engine.binaryMessenger codec:[FlutterJSONMessageCodec sharedInstance]]];
+  [_keyboardManager addPrimaryResponder:keyResponder];
 
   [_keyboardManager addSecondaryResponder:_textInputPlugin];
-    keyResponder.delegate = self;
+  keyResponder.delegate = self;
 }
 
 - (void)addInternalPlugins {
@@ -778,8 +772,7 @@ static void CommonInit(FlutterViewController* controller) {
 #pragma mark -FlutterChannelKeyResponderDelegate
 
 - (BOOL)hasMarkedText {
-    return [_textInputPlugin hasMarkedText];
+  return [_textInputPlugin hasMarkedText];
 }
 
 @end
-

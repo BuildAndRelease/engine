@@ -70,10 +70,10 @@
     @"keyCode" : @(event.keyCode),
     @"modifiers" : @(modifierFlags),
   } mutableCopy];
-    if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) && self.delegate != nil && [self.delegate hasMarkedText]) {
-        callback(false);
-        return;
-    }
+  if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) && self.delegate != nil && [self.delegate hasMarkedText]) {
+    callback(false);
+    return;
+  }
   // Calling these methods on any other type of event
   // (e.g NSEventTypeFlagsChanged) will raise an exception.
   if (event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp) {
