@@ -70,7 +70,8 @@
     @"keyCode" : @(event.keyCode),
     @"modifiers" : @(modifierFlags),
   } mutableCopy];
-  if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) && self.delegate != nil && [self.delegate hasMarkedText]) {
+  if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) &&
+      self.delegate != nil && [self.delegate hasMarkedText]) {
     callback(false);
     return;
   }

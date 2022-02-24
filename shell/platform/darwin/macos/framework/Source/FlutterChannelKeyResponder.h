@@ -23,7 +23,7 @@
  */
 @interface FlutterChannelKeyResponder : NSObject <FlutterKeyPrimaryResponder>
 
-@property(nonatomic,weak,nullable) id<FlutterChannelKeyResponderDelegate> delegate;
+@property(nonatomic, weak, nullable) id<FlutterChannelKeyResponderDelegate> delegate;
 
 /**
  * Create an instance by specifying the method channel to use.
