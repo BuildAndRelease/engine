@@ -8,6 +8,13 @@
 
 #import "flutter/shell/platform/darwin/common/framework/Headers/FlutterChannels.h"
 
+#import "FlutterTextInputPlugin.h"
+
+@protocol FlutterChannelKeyResponderDelegate <NSObject>
+
+- (BOOL) hasMarkedText;
+
+@end
 /**
  * A primary responder of |FlutterKeyboardManager| that handles events by
  * sending the raw information through the method channel.
@@ -15,6 +22,8 @@
  * This class communicates with the RawKeyboard API in the framework.
  */
 @interface FlutterChannelKeyResponder : NSObject <FlutterKeyPrimaryResponder>
+
+@property(nonatomic,weak,nullable)id<FlutterChannelKeyResponderDelegate> delegate;
 
 /**
  * Create an instance by specifying the method channel to use.

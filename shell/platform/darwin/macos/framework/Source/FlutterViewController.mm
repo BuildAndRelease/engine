@@ -98,7 +98,7 @@ struct MouseState {
 /**
  * Private interface declaration for FlutterViewController.
  */
-@interface FlutterViewController () <FlutterViewReshapeListener>
+@interface FlutterViewController () <FlutterViewReshapeListener,FlutterChannelKeyResponderDelegate>
 
 /**
  * The tracking area used to generate hover events, if enabled.
@@ -452,14 +452,17 @@ static void CommonInit(FlutterViewController* controller) {
                                                                    callback:callback
                                                                    userData:userData];
                                             }]];
+    FlutterChannelKeyResponder *keyResponder = [[FlutterChannelKeyResponder alloc]
+                                                initWithChannel:[FlutterBasicMessageChannel
+                                                                    messageChannelWithName:@"flutter/keyevent"
+                                                                           binaryMessenger:_engine.binaryMessenger
+                                                                                     codec:[FlutterJSONMessageCodec
+                                                                                            sharedInstance]]];
   [_keyboardManager
-      addPrimaryResponder:[[FlutterChannelKeyResponder alloc]
-                              initWithChannel:[FlutterBasicMessageChannel
-                                                  messageChannelWithName:@"flutter/keyevent"
-                                                         binaryMessenger:_engine.binaryMessenger
-                                                                   codec:[FlutterJSONMessageCodec
-                                                                             sharedInstance]]]];
+      addPrimaryResponder:keyResponder];
+
   [_keyboardManager addSecondaryResponder:_textInputPlugin];
+    keyResponder.delegate = self;
 }
 
 - (void)addInternalPlugins {
@@ -772,4 +775,11 @@ static void CommonInit(FlutterViewController* controller) {
   [self dispatchMouseEvent:event phase:kHover];
 }
 
+#pragma mark -FlutterChannelKeyResponderDelegate
+
+- (BOOL)hasMarkedText {
+    return [_textInputPlugin hasMarkedText];
+}
+
 @end
+
