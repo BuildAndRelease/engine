@@ -13,6 +13,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/FullScreenScreenshot">
             <intent-filter>
@@ -30,6 +31,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/FullScreenScreenshot">
             <intent-filter>
@@ -39,6 +41,7 @@
         </activity>
         <activity android:name=".StrictModeFlutterActivity"
             android:launchMode="singleTop"
+            android:exported="true"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true">
             <intent-filter>

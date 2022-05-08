@@ -125,6 +125,7 @@ public class FlutterSurfaceView extends SurfaceView implements RenderSurface {
     if (renderTransparently) {
       getHolder().setFormat(PixelFormat.TRANSPARENT);
       setZOrderOnTop(true);
+      setZOrderMediaOverlay(true);
     }
 
     // Grab a reference to our underlying Surface and register callbacks with that Surface so we
