@@ -35,6 +35,7 @@ class SK_API_AVAILABLE_CA_METAL_LAYER GPUSurfaceMetal : public Surface {
   // hack to make avoid allocating resources for the root surface when an
   // external view embedder is present.
   bool render_to_surface_;
+  bool disable_partial_repaint_ = false;
 
   // Accumulated damage for each framebuffer; Key is address of underlying
   // MTLTexture for each drawable
