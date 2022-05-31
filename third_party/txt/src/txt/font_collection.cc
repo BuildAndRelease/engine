@@ -30,6 +30,7 @@
 #include "minikin/Layout.h"
 #include "txt/platform.h"
 #include "txt/text_style.h"
+#include <iostream>
 
 namespace txt {
 
@@ -280,8 +281,15 @@ std::shared_ptr<minikin::FontFamily> FontCollection::CreateMinikinFontFamily(
     const std::string& family_name) {
   TRACE_EVENT1("flutter", "FontCollection::CreateMinikinFontFamily",
                "family_name", family_name.c_str());
-  sk_sp<SkFontStyleSet> font_style_set(
-      manager->matchFamily(family_name.c_str()));
+  if (!manager) {
+    std::cout << "[ENGINE ERROR] " << __FUNCTION__ << " family_name:" << family_name.c_str() << " font manager is null." << std::endl;
+    return nullptr;
+  }
+  SkFontStyleSet* pFont_style_set = manager->matchFamily(family_name.c_str());
+  if (!pFont_style_set){
+    return nullptr;
+  }
+  sk_sp<SkFontStyleSet> font_style_set(pFont_style_set);
   if (font_style_set == nullptr || font_style_set->count() == 0) {
     return nullptr;
   }

@@ -48,6 +48,8 @@ SkFontStyleSet* AssetFontManager::onCreateStyleSet(int index) const {
 SkFontStyleSet* AssetFontManager::onMatchFamily(
     const char family_name_string[]) const {
   std::string family_name(family_name_string);
+  if (!font_provider_)
+      return nullptr;
   return font_provider_->MatchFamily(family_name);
 }
 

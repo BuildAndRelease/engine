@@ -9,6 +9,7 @@
 #include "third_party/tonic/dart_args.h"
 #include "third_party/tonic/dart_binding_macros.h"
 #include "third_party/tonic/dart_library_natives.h"
+#include <iostream>
 
 namespace flutter {
 
@@ -38,6 +39,22 @@ void CanvasImage::RegisterNatives(tonic::DartLibraryNatives* natives) {
 CanvasImage::CanvasImage() = default;
 
 CanvasImage::~CanvasImage() = default;
+
+int CanvasImage::width() const {
+    if (!image_.skia_object()) {
+      std::cout << "[ENGINE ERROR] " << __FUNCTION__ << " image_.skia_object() is null." << std::endl;
+      return 0;
+    }
+    return image_.skia_object()->width();
+}
+
+int CanvasImage::height() const {
+    if (!image_.skia_object()) {
+      std::cout << "[ENGINE ERROR] " << __FUNCTION__ << " image_.skia_object() is null." << std::endl;
+      return 0;
+    }
+    return image_.skia_object()->height();
+}
 
 Dart_Handle CanvasImage::toByteData(int format, Dart_Handle callback) {
   return EncodeImage(this, format, callback);
