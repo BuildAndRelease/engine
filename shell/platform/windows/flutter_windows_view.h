@@ -180,7 +180,8 @@ class FlutterWindowsView : public WindowBindingHandlerDelegate,
   virtual void RegisterKeyboardHandlers(
       flutter::BinaryMessenger* messenger,
       flutter::KeyboardKeyHandler::EventDispatcher dispatch_event,
-      flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state);
+      flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state,
+      flutter::KeyboardKeyEmbedderHandler::MapVirtualKeyToScanCode map_vk_to_scan);
 
   // Used by RegisterKeyboardHandlers to add a new keyboard hook handler.
   void AddKeyboardHandler(

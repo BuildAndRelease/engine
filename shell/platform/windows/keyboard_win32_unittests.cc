@@ -193,13 +193,14 @@ class TestFlutterWindowsView : public FlutterWindowsView {
   void RegisterKeyboardHandlers(
       BinaryMessenger* messenger,
       KeyboardKeyHandler::EventDispatcher dispatch_event,
-      KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state) override {
+      KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state,
+      KeyboardKeyEmbedderHandler::MapVirtualKeyToScanCode map_vk_to_scan) override {
     FlutterWindowsView::RegisterKeyboardHandlers(
         messenger,
         [this](UINT cInputs, LPINPUT pInputs, int cbSize) -> UINT {
           return this->SendInput(cInputs, pInputs, cbSize);
         },
-        key_state_.Getter());
+        key_state_.Getter(), map_vk_to_scan);
   }
 
  private:

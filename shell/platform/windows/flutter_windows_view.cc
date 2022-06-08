@@ -70,7 +70,8 @@ void FlutterWindowsView::SetEngine(
 void FlutterWindowsView::RegisterKeyboardHandlers(
     flutter::BinaryMessenger* messenger,
     flutter::KeyboardKeyHandler::EventDispatcher dispatch_event,
-    flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state) {
+    flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state,
+    flutter::KeyboardKeyEmbedderHandler::MapVirtualKeyToScanCode map_vk_to_scan) {
   // There must be only one handler that receives |SendInput|, i.e. only one
   // handler that might redispatch events. (See the documentation of
   // |KeyboardKeyHandler| to learn about redispatching.)
@@ -86,7 +87,7 @@ void FlutterWindowsView::RegisterKeyboardHandlers(
              void* user_data) {
         return engine_->SendKeyEvent(event, callback, user_data);
       },
-      get_key_state));
+      get_key_state, map_vk_to_scan));
   key_handler->AddDelegate(
       std::make_unique<KeyboardKeyChannelHandler>(messenger));
   AddKeyboardHandler(std::move(key_handler));
@@ -271,13 +272,20 @@ void FlutterWindowsView::InitializeKeyboard() {
   flutter::KeyboardKeyHandler::EventDispatcher dispatch_event = nullptr;
   flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state =
       nullptr;
+  flutter::KeyboardKeyEmbedderHandler::MapVirtualKeyToScanCode map_vk_to_scan =
+      nullptr;
 #else
   flutter::KeyboardKeyHandler::EventDispatcher dispatch_event = SendInput;
   flutter::KeyboardKeyEmbedderHandler::GetKeyStateHandler get_key_state =
       GetKeyState;
+  flutter::KeyboardKeyEmbedderHandler::MapVirtualKeyToScanCode map_vk_to_scan =
+  [](UINT virtual_key, bool extended) {
+    return MapVirtualKey(virtual_key,
+                          extended ? MAPVK_VK_TO_VSC_EX : MAPVK_VK_TO_VSC);
+  };
 #endif
   RegisterKeyboardHandlers(internal_plugin_messenger, dispatch_event,
-                           get_key_state);
+                           get_key_state, map_vk_to_scan);
 }
 
 // Sends new size  information to FlutterEngine.

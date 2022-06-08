@@ -172,7 +172,7 @@ bool KeyboardManagerWin32::HandleMessage(UINT const message,
       const bool extended = ((lparam >> 24) & 0x01) == 0x01;
       // If the key is a modifier, get its side.
       keyCode = ResolveKeyCode(keyCode, extended, scancode);
-      if (keyCode == 161) {
+      if (keyCode == 161 || keyCode == 160) {
         return false;
       }
       const bool was_down = lparam & 0x40000000;
