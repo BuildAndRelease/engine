@@ -81,9 +81,14 @@
                         if (!reply) {
                           return callback(true);
                         }
-                        // Only propagate the event to other responders if the framework didn't
-                        // handle it.
-                        callback([[reply valueForKey:@"handled"] boolValue]);
+                        //回退键engine层面也做处理
+                        if ([keyMessage[@"keyCode"] intValue] == 51) {
+                            callback(false);
+                        } else {
+                            // Only propagate the event to other responders if the framework didn't
+                            // handle it.
+                            callback([[reply valueForKey:@"handled"] boolValue]);
+                        }
                       }];
 }
 
