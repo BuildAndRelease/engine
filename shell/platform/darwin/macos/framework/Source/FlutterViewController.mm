@@ -459,7 +459,7 @@ static void CommonInit(FlutterViewController* controller) {
                                                                    userData:userData];
                                             }]];
   FlutterChannelKeyResponder* keyResponder = [[FlutterChannelKeyResponder alloc]
-       initWithChannel:[FlutterBasicMessageChannel
+      initWithChannel:[FlutterBasicMessageChannel
                           messageChannelWithName:@"flutter/keyevent"
                                  binaryMessenger:_engine.binaryMessenger
                                            codec:[FlutterJSONMessageCodec sharedInstance]]];
