@@ -70,11 +70,11 @@
     @"keyCode" : @(event.keyCode),
     @"modifiers" : @(modifierFlags),
   } mutableCopy];
-    //如果是回车键，先让看一下是否是预输入状态，如果是就直接跳过flutter层处理
-        if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) && self.delegate != nil && [self.delegate hasMarkedText]) {
-            callback(false);
-            return;
-        }
+  //如果是回车键，先让看一下是否是预输入状态，如果是就直接跳过flutter层处理
+  if (([keyMessage[@"keyCode"] intValue] == 36 || [keyMessage[@"keyCode"] intValue] == 76) && self.delegate != nil && [self.delegate hasMarkedText]) {
+    callback(false);
+    return;
+  }
   // Calling these methods on any other type of event
   // (e.g NSEventTypeFlagsChanged) will raise an exception.
   if (event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp) {
@@ -88,11 +88,11 @@
                         }
                         //回退键engine层面也做处理
                         if ([keyMessage[@"keyCode"] intValue] == 51) {
-                            callback(false);
+                          callback(false);
                         } else {
-                            // Only propagate the event to other responders if the framework didn't
-                            // handle it.
-                            callback([[reply valueForKey:@"handled"] boolValue]);
+                          // Only propagate the event to other responders if the framework didn't
+                          // handle it.
+                          callback([[reply valueForKey:@"handled"] boolValue]);
                         }
                       }];
 }
