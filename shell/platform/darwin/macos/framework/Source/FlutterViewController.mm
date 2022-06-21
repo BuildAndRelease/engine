@@ -459,10 +459,10 @@ static void CommonInit(FlutterViewController* controller) {
                                                                    userData:userData];
                                             }]];
   FlutterChannelKeyResponder* keyResponder = [[FlutterChannelKeyResponder alloc]
-         initWithChannel:[FlutterBasicMessageChannel
-                            messageChannelWithName:@"flutter/keyevent"
-                                   binaryMessenger:_engine.binaryMessenger
-                                             codec:[FlutterJSONMessageCodec sharedInstance]]];
+       initWithChannel:[FlutterBasicMessageChannel
+                          messageChannelWithName:@"flutter/keyevent"
+                                 binaryMessenger:_engine.binaryMessenger
+                                           codec:[FlutterJSONMessageCodec sharedInstance]]];
   [_keyboardManager addPrimaryResponder:keyResponder];
   [_keyboardManager addSecondaryResponder:_textInputPlugin];
   keyResponder.delegate = self;
