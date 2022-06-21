@@ -13,8 +13,20 @@
  * sending the raw information through the method channel.
  *
  * This class communicates with the RawKeyboard API in the framework.
+ *
+ * 
  */
+
+
+@protocol FlutterChannelKeyResponderDelegate <NSObject>
+
+- (BOOL) hasMarkedText;
+
+@end
+
 @interface FlutterChannelKeyResponder : NSObject <FlutterKeyPrimaryResponder>
+
+@property(nonatomic,weak,nullable)id<FlutterChannelKeyResponderDelegate> delegate;
 
 /**
  * Create an instance by specifying the method channel to use.

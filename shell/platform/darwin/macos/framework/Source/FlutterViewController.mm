@@ -21,6 +21,7 @@
 #import "flutter/shell/platform/darwin/macos/framework/Source/FlutterTextInputSemanticsObject.h"
 #import "flutter/shell/platform/darwin/macos/framework/Source/FlutterView.h"
 #import "flutter/shell/platform/embedder/embedder.h"
+#import "FlutterChannelKeyResponder.h"
 
 namespace {
 
@@ -98,7 +99,7 @@ struct MouseState {
 /**
  * Private interface declaration for FlutterViewController.
  */
-@interface FlutterViewController () <FlutterViewReshapeListener>
+@interface FlutterViewController () <FlutterViewReshapeListener,FlutterChannelKeyResponderDelegate>
 
 /**
  * The tracking area used to generate hover events, if enabled.
@@ -457,14 +458,15 @@ static void CommonInit(FlutterViewController* controller) {
                                                                    callback:callback
                                                                    userData:userData];
                                             }]];
-  [_keyboardManager
-      addPrimaryResponder:[[FlutterChannelKeyResponder alloc]
-                              initWithChannel:[FlutterBasicMessageChannel
-                                                  messageChannelWithName:@"flutter/keyevent"
-                                                         binaryMessenger:_engine.binaryMessenger
-                                                                   codec:[FlutterJSONMessageCodec
-                                                                             sharedInstance]]]];
+  FlutterChannelKeyResponder *keyResponder = [[FlutterChannelKeyResponder alloc]
+                                                    initWithChannel:[FlutterBasicMessageChannel
+                                                                        messageChannelWithName:@"flutter/keyevent"
+                                                                               binaryMessenger:_engine.binaryMessenger
+                                                                                         codec:[FlutterJSONMessageCodec
+                                                                                                sharedInstance]]];
+  [_keyboardManager addPrimaryResponder:keyResponder];
   [_keyboardManager addSecondaryResponder:_textInputPlugin];
+    keyResponder.delegate = self;
 }
 
 - (void)addInternalPlugins {
@@ -782,6 +784,11 @@ static void CommonInit(FlutterViewController* controller) {
   // TODO: Add gesture-based (trackpad) scroll support once it's supported by the engine rather
   // than always using kHover.
   [self dispatchMouseEvent:event phase:kHover];
+}
+
+#pragma mark -FlutterChannelKeyResponderDelegate
+- (BOOL)hasMarkedText {
+    return [_textInputPlugin hasMarkedText];
 }
 
 @end
