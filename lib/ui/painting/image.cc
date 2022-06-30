@@ -59,4 +59,20 @@ size_t CanvasImage::GetAllocationSize() const {
   }
 }
 
+int CanvasImage::width() {
+  if (auto image = image_.skia_object()) {
+    return image->width();
+  } else {
+    return 0;
+  }
+}
+
+int CanvasImage::height() {
+  if (auto image = image_.skia_object()) {
+    return image->height();
+  } else {
+    return 0;
+  }
+}
+
 }  // namespace flutter

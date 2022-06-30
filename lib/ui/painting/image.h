@@ -26,9 +26,9 @@ class CanvasImage final : public RefCountedDartWrappable<CanvasImage> {
     return fml::MakeRefCounted<CanvasImage>();
   }
 
-  int width() { return image_.skia_object()->width(); }
+  int width();
 
-  int height() { return image_.skia_object()->height(); }
+  int height();
 
   Dart_Handle toByteData(int format, Dart_Handle callback);
 
