@@ -19,11 +19,11 @@ namespace flutter {
 #if SHELL_ENABLE_METAL
 bool ShouldUseMetalRenderer() {
   bool ios_version_supports_metal = false;
-  if (@available(iOS METAL_IOS_VERSION_BASELINE, *)) {
-    auto device = MTLCreateSystemDefaultDevice();
-    ios_version_supports_metal = [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3];
-    [device release];
-  }
+//  if (@available(iOS METAL_IOS_VERSION_BASELINE, *)) {
+//    auto device = MTLCreateSystemDefaultDevice();
+//    ios_version_supports_metal = [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3];
+//    [device release];
+//  }
   return ios_version_supports_metal;
 }
 #endif  // SHELL_ENABLE_METAL
