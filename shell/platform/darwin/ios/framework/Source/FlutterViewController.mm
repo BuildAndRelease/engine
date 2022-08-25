@@ -1136,8 +1136,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 }
 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
-    _viewportMetrics.physical_view_inset_bottom = 0;
-    [self updateViewportMetrics];
+  _viewportMetrics.physical_view_inset_bottom = 0;
+  [self updateViewportMetrics];
 }
 
 - (void)handlePressEvent:(FlutterUIPressProxy*)press
