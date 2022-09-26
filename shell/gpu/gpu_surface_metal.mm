@@ -43,13 +43,7 @@ GPUSurfaceMetal::GPUSurfaceMetal(GPUSurfaceMetalDelegate* delegate,
     : delegate_(delegate),
       render_target_type_(delegate->GetRenderTargetType()),
       context_(std::move(context)),
-      render_to_surface_(render_to_surface) {
-  NSNumber* disablePartialRepaint =
-      [[NSBundle mainBundle] objectForInfoDictionaryKey:@"FLTDisablePartialRepaint"];
-  if (disablePartialRepaint != nil) {
-    disable_partial_repaint_ = disablePartialRepaint.boolValue;
-  }
-}
+      render_to_surface_(render_to_surface) {}
 
 GPUSurfaceMetal::~GPUSurfaceMetal() = default;
 
@@ -141,19 +135,17 @@ std::unique_ptr<SurfaceFrame> GPUSurfaceMetal::AcquireFrameFromCAMetalLayer(
 
     canvas->flush();
 
-    if (!disable_partial_repaint_) {
-      uintptr_t texture = reinterpret_cast<uintptr_t>(drawable.get().texture);
-      for (auto& entry : damage_) {
-        if (entry.first != texture) {
-          // Accumulate damage for other framebuffers
-          if (surface_frame.submit_info().frame_damage) {
-            entry.second.join(*surface_frame.submit_info().frame_damage);
-          }
+    uintptr_t texture = reinterpret_cast<uintptr_t>(drawable.get().texture);
+    for (auto& entry : damage_) {
+      if (entry.first != texture) {
+        // Accumulate damage for other framebuffers
+        if (surface_frame.submit_info().frame_damage) {
+          entry.second.join(*surface_frame.submit_info().frame_damage);
         }
       }
-      // Reset accumulated damage for current framebuffer
-      damage_[texture] = SkIRect::MakeEmpty();
     }
+    // Reset accumulated damage for current framebuffer
+    damage_[texture] = SkIRect::MakeEmpty();
 
     return delegate_->PresentDrawable(drawable);
   };
@@ -161,14 +153,12 @@ std::unique_ptr<SurfaceFrame> GPUSurfaceMetal::AcquireFrameFromCAMetalLayer(
   SurfaceFrame::FramebufferInfo framebuffer_info;
   framebuffer_info.supports_readback = true;
 
-  if (!disable_partial_repaint_) {
-    // Provide accumulated damage to rasterizer (area in current framebuffer that lags behind
-    // front buffer)
-    uintptr_t texture = reinterpret_cast<uintptr_t>(drawable.get().texture);
-    auto i = damage_.find(texture);
-    if (i != damage_.end()) {
-      framebuffer_info.existing_damage = i->second;
-    }
+  // Provide accumulated damage to rasterizer (area in current framebuffer that lags behind
+  // front buffer)
+  uintptr_t texture = reinterpret_cast<uintptr_t>(drawable.get().texture);
+  auto i = damage_.find(texture);
+  if (i != damage_.end()) {
+    framebuffer_info.existing_damage = i->second;
   }
 
   return std::make_unique<SurfaceFrame>(std::move(surface), framebuffer_info, submit_callback);
