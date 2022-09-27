@@ -17,6 +17,7 @@ enum class IOSRenderingAPI {
   kMetal,
 };
 
+bool ShouldUseMetalRenderer();
 // Pass force_software to force software rendering. This is only respected on
 // simulators.
 IOSRenderingAPI GetRenderingAPIForProcess(bool force_software);

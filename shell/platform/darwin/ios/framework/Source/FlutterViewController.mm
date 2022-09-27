@@ -27,6 +27,7 @@
 #import "flutter/shell/platform/darwin/ios/framework/Source/FlutterView.h"
 #import "flutter/shell/platform/darwin/ios/framework/Source/platform_message_response_darwin.h"
 #import "flutter/shell/platform/darwin/ios/platform_view_ios.h"
+#import "flutter/shell/platform/darwin/ios/rendering_api_selection.h"
 #import "flutter/shell/platform/embedder/embedder.h"
 
 static constexpr int kMicrosecondsPerSecond = 1000 * 1000;
@@ -801,13 +802,18 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
 }
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
+  if (!flutter::ShouldUseMetalRenderer()) {
+    [self surfaceUpdated:NO];
+  }
   [self goToApplicationLifecycle:@"AppLifecycleState.detached"];
   [self.engine destroyContext];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification*)notification {
   TRACE_EVENT0("flutter", "applicationDidEnterBackground");
-  [self surfaceUpdated:NO];
+  if (flutter::ShouldUseMetalRenderer()) {
+    [self surfaceUpdated:NO];
+  }
   [self goToApplicationLifecycle:@"AppLifecycleState.paused"];
 }
 
