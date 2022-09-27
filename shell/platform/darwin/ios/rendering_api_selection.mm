@@ -11,15 +11,31 @@
 #include <Metal/Metal.h>
 #endif  // SHELL_ENABLE_METAL
 #import <TargetConditionals.h>
-
 #include "flutter/fml/logging.h"
+#import <sys/utsname.h>
 
 namespace flutter {
 
 #if SHELL_ENABLE_METAL
+
+struct utsname systemInfo;
+
 bool ShouldUseMetalRenderer() {
-  bool ios_version_supports_metal = false;
-  return ios_version_supports_metal;
+    uname(&systemInfo);
+    NSString *platform = [NSString stringWithCString:systemInfo.machine encoding:NSASCIIStringEncoding];
+    NSArray * outDeviceArray = @[@"iPhone1,1",@"iPhone1,2",@"iPhone2,1",@"iPhone3,1",@"iPhone3,2",@"iPhone3,3",@"iPhone4,1",@"iPhone5,1",@"iPhone5,2",@"iPhone5,3",@"iPhone5,4",@"iPhone6,2",@"iPhone7,2",@"iPhone7,1",@"iPhone8,1",@"iPhone8,2",@"iPhone8,3",@"iPhone8,4",@"iPhone9,1",@"iPhone9,3",@"iPhone9,2",@"iPhone9,4",@"iPhone10,1",@"iPhone10,4",@"iPhone10,2",@"iPhone10,5",@"iPhone10,3",@"iPhone10,6",@"iPhone11,8"];
+    if (![outDeviceArray containsObject:platform]) {
+        return false;
+    } else {
+        bool ios_version_supports_metal = false;
+        if (@available(iOS METAL_IOS_VERSION_BASELINE, *)) {
+          auto device = MTLCreateSystemDefaultDevice();
+          ios_version_supports_metal = [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3];
+          [device release];
+        }
+        return ios_version_supports_metal;
+    }
+    
 }
 #endif  // SHELL_ENABLE_METAL
 
@@ -71,3 +87,4 @@ Class GetCoreAnimationLayerClassForRenderingAPI(IOSRenderingAPI rendering_api) {
 }
 
 }  // namespace flutter
+
