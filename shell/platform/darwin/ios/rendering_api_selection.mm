@@ -11,6 +11,7 @@
 #include <Metal/Metal.h>
 #endif  // SHELL_ENABLE_METAL
 #import <TargetConditionals.h>
+#import <mach/mach.h>
 #import <sys/utsname.h>
 #include "flutter/fml/logging.h"
 
@@ -21,7 +22,7 @@ const NSArray* outDeviceArray = @[
   @"iPhone4,1",  @"iPhone5,1",  @"iPhone5,2",  @"iPhone5,3",  @"iPhone5,4",  @"iPhone6,2",
   @"iPhone7,2",  @"iPhone7,1",  @"iPhone8,1",  @"iPhone8,2",  @"iPhone8,3",  @"iPhone8,4",
   @"iPhone9,1",  @"iPhone9,3",  @"iPhone9,2",  @"iPhone9,4",  @"iPhone10,1", @"iPhone10,4",
-  @"iPhone10,2", @"iPhone10,5", @"iPhone10,3", @"iPhone10,6", @"iPhone11,8"
+  @"iPhone10,2", @"iPhone10,5", @"iPhone10,3", @"iPhone10,6", @"iPhone11,8", @"iPhone12,8"
 ];
 
 bool ShouldUseMetalRenderer() {
@@ -29,7 +30,25 @@ bool ShouldUseMetalRenderer() {
   uname(&systemInfo);
   NSString* platform = [NSString stringWithCString:systemInfo.machine
                                           encoding:NSASCIIStringEncoding];
-  if (![outDeviceArray containsObject:platform]) {
+
+  bool isOutIpad = false;
+  if ([platform containsString:@"iPad"]) {
+    vm_statistics_data_t vmStats;
+    mach_msg_type_number_t infoCount = HOST_VM_INFO_COUNT;
+    kern_return_t kernReturn =
+        host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmStats, &infoCount);
+
+    if (kernReturn == KERN_SUCCESS) {
+      double total = ((vm_page_size * (vmStats.free_count + vmStats.active_count +
+                                       vmStats.inactive_count + vmStats.wire_count)) /
+                      1024.0) /
+                     1024.0;
+      if (total <= 1024 * 2) {
+        isOutIpad = true;
+      }
+    }
+  }
+  if (![outDeviceArray containsObject:platform] && !isOutIpad) {
     return false;
   } else {
     bool ios_version_supports_metal = false;
