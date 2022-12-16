@@ -771,9 +771,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
 }
 
 - (void)dealloc {
-  if (!flutter::ShouldUseMetalRenderer()) {
-    exit(0);
-  }
   // It will be destroyed and invalidate its weak pointers
   // before any other members are destroyed.
   _weakFactory.reset();
@@ -805,6 +802,9 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
 }
 
 - (void)applicationWillTerminate:(NSNotification*)notification {
+  if (!flutter::ShouldUseMetalRenderer()) {
+    exit(0);
+  }
   if (!flutter::ShouldUseMetalRenderer()) {
     [self surfaceUpdated:NO];
   }
