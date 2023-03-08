@@ -27,7 +27,6 @@
 #import "flutter/shell/platform/darwin/ios/framework/Source/FlutterTextInputPlugin.h"
 #import "flutter/shell/platform/darwin/ios/framework/Source/FlutterView.h"
 #import "flutter/shell/platform/darwin/ios/framework/Source/platform_message_response_darwin.h"
-#import "flutter/shell/platform/darwin/ios/framework/Source/vsync_waiter_ios.h"
 #import "flutter/shell/platform/darwin/ios/platform_view_ios.h"
 #import "flutter/shell/platform/embedder/embedder.h"
 
@@ -59,20 +58,6 @@ typedef struct MouseState {
 @property(nonatomic, readwrite, getter=isDisplayingFlutterUI) BOOL displayingFlutterUI;
 @property(nonatomic, assign) BOOL isHomeIndicatorHidden;
 @property(nonatomic, assign) BOOL isPresentingViewControllerAnimating;
-
-/**
- * Keyboard animation properties
- */
-@property(nonatomic, assign) double targetViewInsetBottom;
-@property(nonatomic, retain) VSyncClient* keyboardAnimationVSyncClient;
-
-/// VSyncClient for touch events delivery frame rate correction.
-///
-/// On promotion devices(eg: iPhone13 Pro), the delivery frame rate of touch events is 60HZ
-/// but the frame rate of rendering is 120HZ, which is different and will leads jitter and laggy.
-/// With this VSyncClient, it can correct the delivery frame rate of touch events to let it keep
-/// the same with frame rate of rendering.
-@property(nonatomic, retain) VSyncClient* touchRateCorrectionVSyncClient;
 
 /*
  * Mouse and trackpad gesture recognizers
@@ -121,7 +106,6 @@ typedef struct MouseState {
   // UIScrollView with height zero and a content offset so we can get those events. See also:
   // https://github.com/flutter/flutter/issues/35050
   fml::scoped_nsobject<UIScrollView> _scrollView;
-  fml::scoped_nsobject<UIView> _keyboardAnimationView;
   MouseState _mouseState;
   // Timestamp after which a scroll inertia cancel event should be inferred.
   NSTimeInterval _scrollInertiaEventStartline;
@@ -584,10 +568,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   return _splashScreenView.get();
 }
 
-- (UIView*)keyboardAnimationView {
-  return _keyboardAnimationView.get();
-}
-
 - (BOOL)loadDefaultSplashScreenView {
   NSString* launchscreenName =
       [[[NSBundle mainBundle] infoDictionary] objectForKey:@"UILaunchStoryboardName"];
@@ -747,9 +727,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   if (textInputPlugin != nil) {
     [self.keyboardManager addSecondaryResponder:textInputPlugin];
   }
-  if ([_engine.get() viewController] == self) {
-    [textInputPlugin setupIndirectScribbleInteraction:self];
-  }
 }
 
 - (void)removeInternalPlugins {
@@ -797,8 +774,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
 - (void)viewDidDisappear:(BOOL)animated {
   TRACE_EVENT0("flutter", "viewDidDisappear");
   if ([_engine.get() viewController] == self) {
-    [self invalidateKeyboardAnimationVSyncClient];
-    [self ensureViewportMetricsIsCorrect];
     [self surfaceUpdated:NO];
     [[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.paused"];
     [self flushOngoingTouches];
@@ -853,8 +828,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   [self removeInternalPlugins];
   [self deregisterNotifications];
 
-  [self invalidateKeyboardAnimationVSyncClient];
-  [self invalidateTouchRateCorrectionVSyncClient];
   _scrollView.get().delegate = nil;
   _hoverGestureRecognizer.delegate = nil;
   [_hoverGestureRecognizer release];
@@ -987,9 +960,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
       touches_to_remove_count++;
     }
   }
-
-  // Activate or pause the correction of delivery frame rate of touch events.
-  [self triggerTouchRateCorrectionIfNeeded:touches];
 
   const CGFloat scale = [UIScreen mainScreen].scale;
   auto packet =
@@ -1136,61 +1106,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   [self dispatchTouches:touches pointerDataChangeOverride:&cancel event:nullptr];
 }
 
-#pragma mark - Touch events rate correction
-
 - (void)createTouchRateCorrectionVSyncClientIfNeeded {
-  if (_touchRateCorrectionVSyncClient != nil) {
-    return;
-  }
-
-  double displayRefreshRate = [DisplayLinkManager displayRefreshRate];
-  const double epsilon = 0.1;
-  if (displayRefreshRate < 60.0 + epsilon) {  // displayRefreshRate <= 60.0
-
-    // If current device's max frame rate is not larger than 60HZ, the delivery rate of touch events
-    // is the same with render vsync rate. So it is unnecessary to create
-    // _touchRateCorrectionVSyncClient to correct touch callback's rate.
-    return;
-  }
-
-  flutter::Shell& shell = [_engine.get() shell];
-  auto callback = [](std::unique_ptr<flutter::FrameTimingsRecorder> recorder) {
-    // Do nothing in this block. Just trigger system to callback touch events with correct rate.
-  };
-  _touchRateCorrectionVSyncClient =
-      [[VSyncClient alloc] initWithTaskRunner:shell.GetTaskRunners().GetPlatformTaskRunner()
-                                     callback:callback];
-  _touchRateCorrectionVSyncClient.allowPauseAfterVsync = NO;
-}
-
-- (void)triggerTouchRateCorrectionIfNeeded:(NSSet*)touches {
-  if (_touchRateCorrectionVSyncClient == nil) {
-    // If the _touchRateCorrectionVSyncClient is not created, means current devices doesn't
-    // need to correct the touch rate. So just return.
-    return;
-  }
-
-  // As long as there is a touch's phase is UITouchPhaseBegan or UITouchPhaseMoved,
-  // activate the correction. Otherwise pause the correction.
-  BOOL isUserInteracting = NO;
-  for (UITouch* touch in touches) {
-    if (touch.phase == UITouchPhaseBegan || touch.phase == UITouchPhaseMoved) {
-      isUserInteracting = YES;
-      break;
-    }
-  }
-
-  if (isUserInteracting && [_engine.get() viewController] == self) {
-    [_touchRateCorrectionVSyncClient await];
-  } else {
-    [_touchRateCorrectionVSyncClient pause];
-  }
-}
-
-- (void)invalidateTouchRateCorrectionVSyncClient {
-  [_touchRateCorrectionVSyncClient invalidate];
-  [_touchRateCorrectionVSyncClient release];
-  _touchRateCorrectionVSyncClient = nil;
+  
 }
 
 #pragma mark - Handle view resizing
@@ -1289,10 +1206,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   CGRect keyboardFrame = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
   CGRect screenRect = [[UIScreen mainScreen] bounds];
 
-  // Get the animation duration
-  NSTimeInterval duration =
-      [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-
   // Considering the iPad's split keyboard, Flutter needs to check if the keyboard frame is present
   // in the screen to see if the keyboard is visible.
   if (CGRectIntersectsRect(keyboardFrame, screenRect)) {
@@ -1301,136 +1214,16 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
     // The keyboard is treated as an inset since we want to effectively reduce the window size by
     // the keyboard height. The Dart side will compute a value accounting for the keyboard-consuming
     // bottom padding.
-    self.targetViewInsetBottom = bottom * scale;
+    _viewportMetrics.physical_view_inset_bottom = bottom * scale;
   } else {
-    self.targetViewInsetBottom = 0;
+    _viewportMetrics.physical_view_inset_bottom = 0;
   }
-  [self startKeyBoardAnimation:duration];
+  [self updateViewportMetrics];
 }
 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
-  NSDictionary* info = [notification userInfo];
-
-  // Ignore keyboard notifications related to other apps.
-  id isLocal = info[UIKeyboardIsLocalUserInfoKey];
-  if (isLocal && ![isLocal boolValue]) {
-    return;
-  }
-
-  // Ignore keyboard notifications if engine’s viewController is not current viewController.
-  if ([_engine.get() viewController] != self) {
-    return;
-  }
-
-  if (self.targetViewInsetBottom != 0) {
-    // Ensure the keyboard will be dismissed. Just like the keyboardWillChangeFrame,
-    // keyboardWillBeHidden is also in an animation block in iOS sdk, so we don't need to set the
-    // animation curve. Related issue: https://github.com/flutter/flutter/issues/99951
-    self.targetViewInsetBottom = 0;
-    NSTimeInterval duration =
-        [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    [self startKeyBoardAnimation:duration];
-  }
-}
-
-- (void)startKeyBoardAnimation:(NSTimeInterval)duration {
-  // If current physical_view_inset_bottom == targetViewInsetBottom,do nothing.
-  if (_viewportMetrics.physical_view_inset_bottom == self.targetViewInsetBottom) {
-    return;
-  }
-
-  // When call this method first time,
-  // initialize the keyboardAnimationView to get animation interpolation during animation.
-  if ([self keyboardAnimationView] == nil) {
-    UIView* keyboardAnimationView = [[UIView alloc] init];
-    [keyboardAnimationView setHidden:YES];
-    _keyboardAnimationView.reset(keyboardAnimationView);
-  }
-
-  if ([self keyboardAnimationView].superview == nil) {
-    [self.view addSubview:[self keyboardAnimationView]];
-  }
-
-  // Remove running animation when start another animation.
-  [[self keyboardAnimationView].layer removeAllAnimations];
-
-  // Set animation begin value.
-  [self keyboardAnimationView].frame =
-      CGRectMake(0, _viewportMetrics.physical_view_inset_bottom, 0, 0);
-
-  // Invalidate old vsync client if old animation is not completed.
-  [self invalidateKeyboardAnimationVSyncClient];
-  [self setupKeyboardAnimationVsyncClient];
-  VSyncClient* currentVsyncClient = _keyboardAnimationVSyncClient;
-
-  [UIView animateWithDuration:duration
-      animations:^{
-        // Set end value.
-        [self keyboardAnimationView].frame = CGRectMake(0, self.targetViewInsetBottom, 0, 0);
-      }
-      completion:^(BOOL finished) {
-        if (_keyboardAnimationVSyncClient == currentVsyncClient) {
-          // Indicates the vsync client captured by this block is the original one, which also
-          // indicates the animation has not been interrupted from its beginning. Moreover,
-          // indicates the animation is over and there is no more to execute.
-          [self invalidateKeyboardAnimationVSyncClient];
-          [self removeKeyboardAnimationView];
-          [self ensureViewportMetricsIsCorrect];
-        }
-      }];
-}
-
-- (void)setupKeyboardAnimationVsyncClient {
-  auto callback = [weakSelf =
-                       [self getWeakPtr]](std::unique_ptr<flutter::FrameTimingsRecorder> recorder) {
-    if (!weakSelf) {
-      return;
-    }
-    fml::scoped_nsobject<FlutterViewController> flutterViewController(
-        [(FlutterViewController*)weakSelf.get() retain]);
-    if (!flutterViewController) {
-      return;
-    }
-
-    if ([flutterViewController keyboardAnimationView].superview == nil) {
-      // Ensure the keyboardAnimationView is in view hierarchy when animation running.
-      [flutterViewController.get().view addSubview:[flutterViewController keyboardAnimationView]];
-    }
-    if ([flutterViewController keyboardAnimationView].layer.presentationLayer) {
-      CGFloat value =
-          [flutterViewController keyboardAnimationView].layer.presentationLayer.frame.origin.y;
-      flutterViewController.get()->_viewportMetrics.physical_view_inset_bottom = value;
-      [flutterViewController updateViewportMetrics];
-    }
-  };
-  flutter::Shell& shell = [_engine.get() shell];
-  NSAssert(_keyboardAnimationVSyncClient == nil,
-           @"_keyboardAnimationVSyncClient must be nil when setup");
-  _keyboardAnimationVSyncClient =
-      [[VSyncClient alloc] initWithTaskRunner:shell.GetTaskRunners().GetPlatformTaskRunner()
-                                     callback:callback];
-  _keyboardAnimationVSyncClient.allowPauseAfterVsync = NO;
-  [_keyboardAnimationVSyncClient await];
-}
-
-- (void)invalidateKeyboardAnimationVSyncClient {
-  [_keyboardAnimationVSyncClient invalidate];
-  [_keyboardAnimationVSyncClient release];
-  _keyboardAnimationVSyncClient = nil;
-}
-
-- (void)removeKeyboardAnimationView {
-  if ([self keyboardAnimationView].superview != nil) {
-    [[self keyboardAnimationView] removeFromSuperview];
-  }
-}
-
-- (void)ensureViewportMetricsIsCorrect {
-  if (_viewportMetrics.physical_view_inset_bottom != self.targetViewInsetBottom) {
-    // Make sure the `physical_view_inset_bottom` is the target value.
-    _viewportMetrics.physical_view_inset_bottom = self.targetViewInsetBottom;
-    [self updateViewportMetrics];
-  }
+  _viewportMetrics.physical_view_inset_bottom = 0;
+  [self updateViewportMetrics];
 }
 
 - (void)handlePressEvent:(FlutterUIPressProxy*)press
