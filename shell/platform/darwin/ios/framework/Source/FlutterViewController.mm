@@ -58,12 +58,6 @@ typedef struct MouseState {
 @property(nonatomic, assign) BOOL isHomeIndicatorHidden;
 @property(nonatomic, assign) BOOL isPresentingViewControllerAnimating;
 
-/**
- * Keyboard animation properties
- */
-@property(nonatomic, assign) double targetViewInsetBottom;
-@property(nonatomic, retain) CADisplayLink* displayLink;
-
 /*
  * Mouse and trackpad gesture recognizers
  */
@@ -125,7 +119,6 @@ typedef enum UIAccessibilityContrast : NSInteger {
   // UIScrollView with height zero and a content offset so we can get those events. See also:
   // https://github.com/flutter/flutter/issues/35050
   fml::scoped_nsobject<UIScrollView> _scrollView;
-  fml::scoped_nsobject<UIView> _keyboardAnimationView;
   MouseState _mouseState;
 }
 
@@ -578,10 +571,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   return _splashScreenView.get();
 }
 
-- (UIView*)keyboardAnimationView {
-  return _keyboardAnimationView.get();
-}
-
 - (BOOL)loadDefaultSplashScreenView {
   NSString* launchscreenName =
       [[[NSBundle mainBundle] infoDictionary] objectForKey:@"UILaunchStoryboardName"];
@@ -787,8 +776,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
 - (void)viewDidDisappear:(BOOL)animated {
   TRACE_EVENT0("flutter", "viewDidDisappear");
   if ([_engine.get() viewController] == self) {
-    [self invalidateDisplayLink];
-    [self ensureViewportMetricsIsCorrect];
     [self surfaceUpdated:NO];
     [[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.paused"];
     [self flushOngoingTouches];
@@ -843,7 +830,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   [self removeInternalPlugins];
   [self deregisterNotifications];
 
-  [_displayLink release];
   _scrollView.get().delegate = nil;
   _hoverGestureRecognizer.delegate = nil;
   [_hoverGestureRecognizer release];
@@ -1229,17 +1215,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
     }
   }
 
-  // Ignore keyboard notifications if engine’s viewController is not current viewController.
-  if ([_engine.get() viewController] != self) {
-    return;
-  }
-
   CGRect keyboardFrame = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
   CGRect screenRect = [[UIScreen mainScreen] bounds];
-
-  // Get the animation duration
-  NSTimeInterval duration =
-      [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
 
   // Considering the iPad's split keyboard, Flutter needs to check if the keyboard frame is present
   // in the screen to see if the keyboard is visible.
@@ -1249,118 +1226,16 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
     // The keyboard is treated as an inset since we want to effectively reduce the window size by
     // the keyboard height. The Dart side will compute a value accounting for the keyboard-consuming
     // bottom padding.
-    self.targetViewInsetBottom = bottom * scale;
+    _viewportMetrics.physical_view_inset_bottom = bottom * scale;
   } else {
-    self.targetViewInsetBottom = 0;
+    _viewportMetrics.physical_view_inset_bottom = 0;
   }
-  [self startKeyBoardAnimation:duration];
+  [self updateViewportMetrics];
 }
 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
-  NSDictionary* info = [notification userInfo];
-
-  if (@available(iOS 9, *)) {
-    // Ignore keyboard notifications related to other apps.
-    id isLocal = info[UIKeyboardIsLocalUserInfoKey];
-    if (isLocal && ![isLocal boolValue]) {
-      return;
-    }
-  }
-
-  // Ignore keyboard notifications if engine’s viewController is not current viewController.
-  if ([_engine.get() viewController] != self) {
-    return;
-  }
-
-  if (self.targetViewInsetBottom != 0) {
-    // Ensure the keyboard will be dismissed. Just like the keyboardWillChangeFrame,
-    // keyboardWillBeHidden is also in an animation block in iOS sdk, so we don't need to set the
-    // animation curve. Related issue: https://github.com/flutter/flutter/issues/99951
-    self.targetViewInsetBottom = 0;
-    NSTimeInterval duration =
-        [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    [self startKeyBoardAnimation:duration];
-  }
-}
-
-- (void)startKeyBoardAnimation:(NSTimeInterval)duration {
-  // If current physical_view_inset_bottom == targetViewInsetBottom,do nothing.
-  if (_viewportMetrics.physical_view_inset_bottom == self.targetViewInsetBottom) {
-    return;
-  }
-
-  // When call this method first time,
-  // initialize the keyboardAnimationView to get animation interpolation during animation.
-  if ([self keyboardAnimationView] == nil) {
-    UIView* keyboardAnimationView = [[UIView alloc] init];
-    [keyboardAnimationView setHidden:YES];
-    _keyboardAnimationView.reset(keyboardAnimationView);
-  }
-
-  if ([self keyboardAnimationView].superview == nil) {
-    [self.view addSubview:[self keyboardAnimationView]];
-  }
-
-  // Remove running animation when start another animation.
-  // After calling this line,the old display link will invalidate.
-  [[self keyboardAnimationView].layer removeAllAnimations];
-
-  // Set animation begin value.
-  [self keyboardAnimationView].frame =
-      CGRectMake(0, _viewportMetrics.physical_view_inset_bottom, 0, 0);
-
-  // Invalidate old display link if the old animation is not complete
-  [self invalidateDisplayLink];
-
-  self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(onDisplayLink)];
-  [self.displayLink addToRunLoop:NSRunLoop.currentRunLoop forMode:NSRunLoopCommonModes];
-  __block CADisplayLink* currentDisplayLink = self.displayLink;
-
-  [UIView animateWithDuration:duration
-      animations:^{
-        // Set end value.
-        [self keyboardAnimationView].frame = CGRectMake(0, self.targetViewInsetBottom, 0, 0);
-      }
-      completion:^(BOOL finished) {
-        if (self.displayLink == currentDisplayLink) {
-          // Indicates the displaylink captured by this block is the original one,which also
-          // indicates the animation has not been interrupted from its beginning. Moreover,indicates
-          // the animation is over and there is no more animation about to exectute.
-          [self invalidateDisplayLink];
-          [self removeKeyboardAnimationView];
-          [self ensureViewportMetricsIsCorrect];
-        }
-      }];
-}
-
-- (void)invalidateDisplayLink {
-  [self.displayLink invalidate];
-}
-
-- (void)removeKeyboardAnimationView {
-  if ([self keyboardAnimationView].superview != nil) {
-    [[self keyboardAnimationView] removeFromSuperview];
-  }
-}
-
-- (void)ensureViewportMetricsIsCorrect {
-  if (_viewportMetrics.physical_view_inset_bottom != self.targetViewInsetBottom) {
-    // Make sure the `physical_view_inset_bottom` is the target value.
-    _viewportMetrics.physical_view_inset_bottom = self.targetViewInsetBottom;
-    [self updateViewportMetrics];
-  }
-}
-
-- (void)onDisplayLink {
-  if ([self keyboardAnimationView].superview == nil) {
-    // Ensure the keyboardAnimationView is in view hierarchy when animation running.
-    [self.view addSubview:[self keyboardAnimationView]];
-  }
-  if ([self keyboardAnimationView].layer.presentationLayer) {
-    CGFloat value = [self keyboardAnimationView].layer.presentationLayer.frame.origin.y;
-    _viewportMetrics.physical_view_inset_bottom = value;
-    [self updateViewportMetrics];
-  }
+  _viewportMetrics.physical_view_inset_bottom = 0;
+  [self updateViewportMetrics];
 }
 
 - (void)handlePressEvent:(FlutterUIPressProxy*)press
