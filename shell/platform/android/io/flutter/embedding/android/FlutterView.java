@@ -690,87 +690,34 @@ public class FlutterView extends FrameLayout
     boolean statusBarVisible = (SYSTEM_UI_FLAG_FULLSCREEN & getWindowSystemUiVisibility()) == 0;
     boolean navigationBarVisible =
         (SYSTEM_UI_FLAG_HIDE_NAVIGATION & getWindowSystemUiVisibility()) == 0;
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      int mask = 0;
-      if (navigationBarVisible) {
-        mask = mask | android.view.WindowInsets.Type.navigationBars();
-      }
-      if (statusBarVisible) {
-        mask = mask | android.view.WindowInsets.Type.statusBars();
-      }
-      Insets uiInsets = insets.getInsets(mask);
-      viewportMetrics.viewPaddingTop = uiInsets.top;
-      viewportMetrics.viewPaddingRight = uiInsets.right;
-      viewportMetrics.viewPaddingBottom = uiInsets.bottom;
-      viewportMetrics.viewPaddingLeft = uiInsets.left;
-
-      Insets imeInsets = insets.getInsets(android.view.WindowInsets.Type.ime());
-      viewportMetrics.viewInsetTop = imeInsets.top;
-      viewportMetrics.viewInsetRight = imeInsets.right;
-      viewportMetrics.viewInsetBottom = imeInsets.bottom; // Typically, only bottom is non-zero
-      viewportMetrics.viewInsetLeft = imeInsets.left;
-
-      Insets systemGestureInsets =
-          insets.getInsets(android.view.WindowInsets.Type.systemGestures());
-      viewportMetrics.systemGestureInsetTop = systemGestureInsets.top;
-      viewportMetrics.systemGestureInsetRight = systemGestureInsets.right;
-      viewportMetrics.systemGestureInsetBottom = systemGestureInsets.bottom;
-      viewportMetrics.systemGestureInsetLeft = systemGestureInsets.left;
-
-      // TODO(garyq): Expose the full rects of the display cutout.
-
-      // Take the max of the display cutout insets and existing padding to merge them
-      DisplayCutout cutout = insets.getDisplayCutout();
-      if (cutout != null) {
-        Insets waterfallInsets = cutout.getWaterfallInsets();
-        viewportMetrics.viewPaddingTop =
-            Math.max(
-                Math.max(viewportMetrics.viewPaddingTop, waterfallInsets.top),
-                cutout.getSafeInsetTop());
-        viewportMetrics.viewPaddingRight =
-            Math.max(
-                Math.max(viewportMetrics.viewPaddingRight, waterfallInsets.right),
-                cutout.getSafeInsetRight());
-        viewportMetrics.viewPaddingBottom =
-            Math.max(
-                Math.max(viewportMetrics.viewPaddingBottom, waterfallInsets.bottom),
-                cutout.getSafeInsetBottom());
-        viewportMetrics.viewPaddingLeft =
-            Math.max(
-                Math.max(viewportMetrics.viewPaddingLeft, waterfallInsets.left),
-                cutout.getSafeInsetLeft());
-      }
-    } else {
-      // We zero the left and/or right sides to prevent the padding the
-      // navigation bar would have caused.
-      ZeroSides zeroSides = ZeroSides.NONE;
-      if (!navigationBarVisible) {
-        zeroSides = calculateShouldZeroSides();
-      }
-
-      // Status bar (top), navigation bar (bottom) and left/right system insets should
-      // partially obscure the content (padding).
-      viewportMetrics.viewPaddingTop = statusBarVisible ? insets.getSystemWindowInsetTop() : 0;
-      viewportMetrics.viewPaddingRight =
-          zeroSides == ZeroSides.RIGHT || zeroSides == ZeroSides.BOTH
-              ? 0
-              : insets.getSystemWindowInsetRight();
-      viewportMetrics.viewPaddingBottom =
-          navigationBarVisible && guessBottomKeyboardInset(insets) == 0
-              ? insets.getSystemWindowInsetBottom()
-              : 0;
-      viewportMetrics.viewPaddingLeft =
-          zeroSides == ZeroSides.LEFT || zeroSides == ZeroSides.BOTH
-              ? 0
-              : insets.getSystemWindowInsetLeft();
-
-      // Bottom system inset (keyboard) should adjust scrollable bottom edge (inset).
-      viewportMetrics.viewInsetTop = 0;
-      viewportMetrics.viewInsetRight = 0;
-      viewportMetrics.viewInsetBottom = guessBottomKeyboardInset(insets);
-      viewportMetrics.viewInsetLeft = 0;
+    // We zero the left and/or right sides to prevent the padding the
+    // navigation bar would have caused.
+    ZeroSides zeroSides = ZeroSides.NONE;
+    if (!navigationBarVisible) {
+      zeroSides = calculateShouldZeroSides();
     }
+
+    // Status bar (top), navigation bar (bottom) and left/right system insets should
+    // partially obscure the content (padding).
+    viewportMetrics.viewPaddingTop = statusBarVisible ? insets.getSystemWindowInsetTop() : 0;
+    viewportMetrics.viewPaddingRight =
+        zeroSides == ZeroSides.RIGHT || zeroSides == ZeroSides.BOTH
+            ? 0
+            : insets.getSystemWindowInsetRight();
+    viewportMetrics.viewPaddingBottom =
+        navigationBarVisible && guessBottomKeyboardInset(insets) == 0
+            ? insets.getSystemWindowInsetBottom()
+            : 0;
+    viewportMetrics.viewPaddingLeft =
+        zeroSides == ZeroSides.LEFT || zeroSides == ZeroSides.BOTH
+            ? 0
+            : insets.getSystemWindowInsetLeft();
+
+    // Bottom system inset (keyboard) should adjust scrollable bottom edge (inset).
+    viewportMetrics.viewInsetTop = 0;
+    viewportMetrics.viewInsetRight = 0;
+    viewportMetrics.viewInsetBottom = guessBottomKeyboardInset(insets);
+    viewportMetrics.viewInsetLeft = 0;
 
     Log.v(
         TAG,
