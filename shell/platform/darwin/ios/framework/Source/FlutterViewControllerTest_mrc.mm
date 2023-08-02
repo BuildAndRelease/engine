@@ -30,7 +30,6 @@ FLUTTER_ASSERT_NOT_ARC
 
 @property(nonatomic, retain) VSyncClient* touchRateCorrectionVSyncClient;
 
-- (void)createTouchRateCorrectionVSyncClientIfNeeded;
 - (void)setupKeyboardAnimationVsyncClient;
 - (void)triggerTouchRateCorrectionIfNeeded:(NSSet*)touches;
 
@@ -76,7 +75,6 @@ FLUTTER_ASSERT_NOT_ARC
   FlutterViewController* viewController = [[FlutterViewController alloc] initWithEngine:engine
                                                                                 nibName:nil
                                                                                  bundle:nil];
-  [viewController createTouchRateCorrectionVSyncClientIfNeeded];
   XCTAssertNotNil(viewController.touchRateCorrectionVSyncClient);
 }
 
@@ -90,11 +88,9 @@ FLUTTER_ASSERT_NOT_ARC
   FlutterViewController* viewController = [[FlutterViewController alloc] initWithEngine:engine
                                                                                 nibName:nil
                                                                                  bundle:nil];
-  [viewController createTouchRateCorrectionVSyncClientIfNeeded];
   VSyncClient* clientBefore = viewController.touchRateCorrectionVSyncClient;
   XCTAssertNotNil(clientBefore);
 
-  [viewController createTouchRateCorrectionVSyncClientIfNeeded];
   VSyncClient* clientAfter = viewController.touchRateCorrectionVSyncClient;
   XCTAssertNotNil(clientAfter);
 
@@ -110,7 +106,6 @@ FLUTTER_ASSERT_NOT_ARC
   FlutterViewController* viewController = [[FlutterViewController alloc] initWithEngine:engine
                                                                                 nibName:nil
                                                                                  bundle:nil];
-  [viewController createTouchRateCorrectionVSyncClientIfNeeded];
   XCTAssertNil(viewController.touchRateCorrectionVSyncClient);
 }
 

@@ -669,9 +669,6 @@ static void SendFakeTouchEvent(FlutterEngine* engine,
   // Register internal plugins.
   [self addInternalPlugins];
 
-  // Create a vsync client to correct delivery frame rate of touch events if needed.
-  [self createTouchRateCorrectionVSyncClientIfNeeded];
-
   if (@available(iOS 13.4, *)) {
     _hoverGestureRecognizer =
         [[UIHoverGestureRecognizer alloc] initWithTarget:self action:@selector(hoverEvent:)];
@@ -1104,10 +1101,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 - (void)forceTouchesCancelled:(NSSet*)touches {
   flutter::PointerData::Change cancel = flutter::PointerData::Change::kCancel;
   [self dispatchTouches:touches pointerDataChangeOverride:&cancel event:nullptr];
-}
-
-- (void)createTouchRateCorrectionVSyncClientIfNeeded {
-  
 }
 
 #pragma mark - Handle view resizing
