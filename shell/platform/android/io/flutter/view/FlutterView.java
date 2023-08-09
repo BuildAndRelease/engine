@@ -609,7 +609,7 @@ public class FlutterView extends SurfaceView
     mMetrics.physicalViewInsetRight = 0;
     mMetrics.physicalViewInsetBottom = guessBottomKeyboardInset(insets);
     mMetrics.physicalViewInsetLeft = 0;
-    
+
     updateViewportMetrics();
     return super.onApplyWindowInsets(insets);
   }
