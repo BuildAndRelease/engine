@@ -50,7 +50,6 @@ public class TextInputPlugin implements ListenableEditingState.EditingStateWatch
   @Nullable private InputConnection lastInputConnection;
   @NonNull private PlatformViewsController platformViewsController;
   @Nullable private Rect lastClientRect;
-  private ImeSyncDeferringInsetsCallback imeSyncCallback;
 
   // Initialize the "last seen" text editing values to a non-null value.
   private TextEditState mLastKnownFrameworkTextEditingState;
@@ -74,26 +73,6 @@ public class TextInputPlugin implements ListenableEditingState.EditingStateWatch
       afm = view.getContext().getSystemService(AutofillManager.class);
     } else {
       afm = null;
-    }
-
-    // Sets up syncing ime insets with the framework, allowing
-    // the Flutter view to grow and shrink to accommodate Android
-    // controlled keyboard animations.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      int mask = 0;
-      if ((View.SYSTEM_UI_FLAG_HIDE_NAVIGATION & mView.getWindowSystemUiVisibility()) == 0) {
-        mask = mask | WindowInsets.Type.navigationBars();
-      }
-      if ((View.SYSTEM_UI_FLAG_FULLSCREEN & mView.getWindowSystemUiVisibility()) == 0) {
-        mask = mask | WindowInsets.Type.statusBars();
-      }
-      imeSyncCallback =
-          new ImeSyncDeferringInsetsCallback(
-              view,
-              mask, // Overlay, insets that should be merged with the deferred insets
-              WindowInsets.Type.ime() // Deferred, insets that will animate
-              );
-      imeSyncCallback.install();
     }
 
     this.textInputChannel = textInputChannel;
@@ -178,11 +157,6 @@ public class TextInputPlugin implements ListenableEditingState.EditingStateWatch
     return mEditable;
   }
 
-  @VisibleForTesting
-  ImeSyncDeferringInsetsCallback getImeSyncCallback() {
-    return imeSyncCallback;
-  }
-
   /**
    * Use the current platform view input connection until unlockPlatformViewInputConnection is
    * called.
@@ -224,9 +198,6 @@ public class TextInputPlugin implements ListenableEditingState.EditingStateWatch
     textInputChannel.setTextInputMethodHandler(null);
     notifyViewExited();
     mEditable.removeEditingStateListener(this);
-    if (imeSyncCallback != null) {
-      imeSyncCallback.remove();
-    }
   }
 
   private static int inputTypeFromTextInputType(
