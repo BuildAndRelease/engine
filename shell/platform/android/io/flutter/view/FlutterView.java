@@ -19,7 +19,6 @@ import android.os.Handler;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
 import android.util.SparseArray;
-import android.view.DisplayCutout;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.PointerIcon;
