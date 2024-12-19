@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #import <UIKit/UIGestureRecognizerSubclass.h>
+#import <WebKit/WebKit.h>
 
 #include <list>
 #include <map>
@@ -990,6 +991,20 @@ void FlutterPlatformViewsController::ResetFrameState() {
     case FlutterPlatformViewGestureRecognizersBlockingPolicyEager:
       // We block all other gesture recognizers immediately in this policy.
       _delayingRecognizer.get().state = UIGestureRecognizerStateEnded;
+      // On iOS 18.2, WKWebView's internal recognizer likely caches the old state of its blocking
+      // recognizers (i.e. delaying recognizer), resulting in non-tappable links. See
+      // https://github.com/flutter/flutter/issues/158961. Removing and adding back the delaying
+      // recognizer solves the problem, possibly because UIKit notifies all the recognizers related
+      // to (blocking or blocked by) this recognizer. It is not possible to inject this workaround
+      // from the web view plugin level. Right now we only observe this issue for
+      // FlutterPlatformViewGestureRecognizersBlockingPolicyEager, but we should try it if a similar
+      // issue arises for the other policy.
+      if (@available(iOS 18.2, *)) {
+        if ([self.embeddedView isKindOfClass:[WKWebView class]]) {
+            [self removeGestureRecognizer:self.delayingRecognizer];
+            [self addGestureRecognizer:self.delayingRecognizer];
+        }
+      }
       break;
     case FlutterPlatformViewGestureRecognizersBlockingPolicyWaitUntilTouchesEnded:
       if (_delayingRecognizer.get().touchedEndedWithoutBlocking) {
