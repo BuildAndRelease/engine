@@ -1000,10 +1000,8 @@ void FlutterPlatformViewsController::ResetFrameState() {
       // FlutterPlatformViewGestureRecognizersBlockingPolicyEager, but we should try it if a similar
       // issue arises for the other policy.
       if (@available(iOS 18.2, *)) {
-        if ([self.embeddedView isKindOfClass:[WKWebView class]]) {
-          [self removeGestureRecognizer:_delayingRecognizer.get()];
-          [self addGestureRecognizer:_delayingRecognizer.get()];
-        }
+        [self removeGestureRecognizer:_delayingRecognizer.get()];
+        [self addGestureRecognizer:_delayingRecognizer.get()];
       }
       break;
     case FlutterPlatformViewGestureRecognizersBlockingPolicyWaitUntilTouchesEnded:
