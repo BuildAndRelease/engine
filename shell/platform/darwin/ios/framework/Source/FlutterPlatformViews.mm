@@ -1001,8 +1001,8 @@ void FlutterPlatformViewsController::ResetFrameState() {
       // issue arises for the other policy.
       if (@available(iOS 18.2, *)) {
         if ([self.embeddedView isKindOfClass:[WKWebView class]]) {
-          [self removeGestureRecognizer:self.delayingRecognizer];
-          [self addGestureRecognizer:self.delayingRecognizer];
+          [self removeGestureRecognizer:_delayingRecognizer.get()];
+          [self addGestureRecognizer:_delayingRecognizer.get()];
         }
       }
       break;
